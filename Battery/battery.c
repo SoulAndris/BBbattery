@@ -191,6 +191,12 @@ int ADC_read(char ADC_number)
     return value;
 }
 
+void all_gpio_off()
+{
+    gpio_write(OUT_RELAY_CHARGE, 0);
+    gpio_write(OUT_RELAY_LOAD, 0);
+    gpio_write(OUT_GPIO_LED,0);
+}
 
 void state_charge(char number)
 {
@@ -223,10 +229,7 @@ void state_charge(char number)
         }
         time_from_start = (3*time_count);
     }
-
-    gpio_write(OUT_RELAY_CHARGE, 0);
-    gpio_write(OUT_RELAY_LOAD, 0);
-    gpio_write(OUT_GPIO_LED,0);
+    all_gpio_off();
 }
 
 void state_d_charge(char number)
@@ -260,20 +263,17 @@ void state_d_charge(char number)
         }
         time_from_start = (3*time_count);
     }
-
-    gpio_write(OUT_RELAY_CHARGE, 0);
-    gpio_write(OUT_RELAY_LOAD, 0);
-    gpio_write(OUT_GPIO_LED,0);
+    all_gpio_off();
 }
-
 
 int main(void)
 {
-    /*
 
-    Открытие и инициализация каналов и gpio
+    ADC_init();
+    gpio_init(OUT_GPIO_LED);
+    gpio_init(OUT_RELAY_CHARGE);
+    gpio_init(OUT_RELAY_LOAD);
 
-    */
    for(int i = 0; i < NUMBER_CHARGE; i++)
    {
 
