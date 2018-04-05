@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
-#include <fstream>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -58,14 +57,16 @@ void check_new_file(char *fname)
     fclose(new_file);
 }
 
-void print_value_in_file(int file, char *i, int time_from_start, char value1, char value2)
+void print_value_in_file(int file, int number, int time_from_start, char value1, char value2)
 {
     FILE* out;
     char name_file[255];
+    char index [10];
+    sprintf(index,"%d",number);
     if(file == 1)
     {
         strcat(name_file, "Charge");
-        strcat(name_file,i);
+        strcat(name_file,index);
         strcat(name_file,".txt");
         check_new_file(name_file);
         out = fopen(name_file, "a+");
@@ -73,7 +74,7 @@ void print_value_in_file(int file, char *i, int time_from_start, char value1, ch
     else
     {
         strcat(name_file, "D-Charge");
-        strcat(name_file,i);
+        strcat(name_file,index);
         strcat(name_file,".txt");
         check_new_file(name_file);
         out = fopen(name_file, "a+");
@@ -82,15 +83,15 @@ void print_value_in_file(int file, char *i, int time_from_start, char value1, ch
     fclose (out);
 }
 
-void print_value_in_screen(char *i, int time_from_start, char value1, char value2)
+void print_value_in_screen(int i, int time_from_start, char value1, char value2)
 {
-    if(*i == 1)
+    if(i == 1)
     {
-        printf("Charge №%s\n", i);
+        printf("Charge №%d\n", i);
     }
     else
     {
-        printf("D-Charge №%s\n", i);
+        printf("D-Charge №%d\n", i);
     }
     printf("%d\t%s\t%s\n",time_from_start,&value1, &value2);
 
@@ -131,19 +132,11 @@ int gpio_read(int gpio)
     return value;
 }
 
-void blink_led()
-{
-    int result;
-    result = gpio_write(777, 1);
-    sleep (WAIT_BLINK_GPIO);
-    result = gpio_write(777, 0);
-}
-
-bool gpio_init( int gpio)
+void gpio_init( int gpio)
 {
     int export_gpio;
     export_gpio = open(SYS_GPIO_DIR"/export/", O_WRONLY );
-    if(export_gpio < 0) return false;
+    if(export_gpio < 0) return;
 
     char buff[255];
     int len;
@@ -157,24 +150,20 @@ bool gpio_init( int gpio)
 
     int direction_gpio;
     direction_gpio = open(buff, O_WRONLY);
-    if(direction_gpio < 0) return false;
+    if(direction_gpio < 0) return;
 
     write(direction_gpio, "out", 4);
     close(direction_gpio);
-
-    return true;
 }
 
-bool ADC_init()
+void ADC_init()
 {
     int ADC_export;
     ADC_export = open(ADC, O_WRONLY);
-    if(ADC_export < 0) return false;
+    if(ADC_export < 0) return;
 
     write(ADC_export, CMD_ADC, (strlen(CMD_ADC)+1));
     close(ADC_export);
-
-    return true;
 }
 
 int ADC_read(char ADC_number)
@@ -183,7 +172,7 @@ int ADC_read(char ADC_number)
     int ADC_read;
     ADC_read = open(&ADC_number, O_RDONLY);
 
-    if(ADC_read < 0) return false;
+    if(ADC_read < 0) return -1;
 
     pread(ADC_read, &value, sizeof(value), 0 );
     close(ADC_read);
@@ -198,7 +187,7 @@ void all_gpio_off()
     gpio_write(OUT_GPIO_LED,0);
 }
 
-void state_charge(char number)
+void state_charge(int number)
 {
     gpio_write(OUT_RELAY_CHARGE, 1);
     gpio_write(OUT_RELAY_LOAD, 0);
@@ -212,8 +201,8 @@ void state_charge(char number)
         int value1, value2, count = 0;
         value1 = ADC_read(*IN_BATT);
         value2 = ADC_read(*IN_VSYS);
-        print_value_in_file(1 , &number, time_from_start,  value1,  value2);
-        print_value_in_screen(&number, time_from_start,  value1,  value2);
+        print_value_in_file(1 , number, time_from_start,  value1,  value2);
+        print_value_in_screen(number, time_from_start,  value1,  value2);
         sleep(WAIT_PRINT_IN_FILE);
         stop = ADC_read(*IN_STATUS_CHARGE);
         count++;
@@ -232,7 +221,7 @@ void state_charge(char number)
     all_gpio_off();
 }
 
-void state_d_charge(char number)
+void state_d_charge(int number)
 {
     gpio_write(OUT_RELAY_CHARGE, 0);
     gpio_write(OUT_RELAY_LOAD, 1);
@@ -246,8 +235,8 @@ void state_d_charge(char number)
         int value1, value2, count = 0;
         value1 = ADC_read(*IN_BATT);
         value2 = ADC_read(*IN_VSYS);
-        print_value_in_file(0, &number, time_from_start,  value1,  value2);
-        print_value_in_screen(&number, time_from_start,  value1,  value2);
+        print_value_in_file(0, number, time_from_start,  value1,  value2);
+        print_value_in_screen(number, time_from_start,  value1,  value2);
         sleep(WAIT_PRINT_IN_FILE);
         stop = ADC_read(*IN_STATUS_CHARGE);
         count++;
@@ -277,11 +266,11 @@ int main(void)
    for(int i = 0; i < NUMBER_CHARGE; i++)
    {
 
-       state_charge(char(i+1));
+       state_charge(i+1);
 
        sleep(SLEEP_BETWENN_CHARGE);
 
-       state_d_charge(char(i+1));
+       state_d_charge(i+1);
 
    }
 
